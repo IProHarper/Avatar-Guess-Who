@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Guess the Bender &mdash; an Avatar: The Last Airbender "Guess Who"</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌀</text></svg>" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <h1><span class="glyph">🌀</span> Guess the Bender</h1>
+  <div id="conn-status" class="conn-status hidden"></div>
+</header>
+
+<main id="app">
+
+  <!-- MENU -->
+  <section id="screen-menu" class="screen active">
+    <p class="tagline">A two-player, play-over-the-internet "Guess Who?" set in the world of Avatar: The Last Airbender.</p>
+
+    <div class="menu-grid">
+      <div class="menu-card">
+        <h2>Host a Game</h2>
+        <p>Create a room and send the code to your friend.</p>
+        <button id="btn-host" class="btn btn-primary">Host Game</button>
+      </div>
+
+      <div class="menu-card">
+        <h2>Join a Game</h2>
+        <p>Enter the room code your friend sent you.</p>
+        <input id="input-join-code" class="text-input" type="text" placeholder="room code" maxlength="24" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        <button id="btn-join" class="btn btn-primary">Join Game</button>
+      </div>
+    </div>
+
+    <p id="menu-error" class="error-text hidden"></p>
+  </section>
+
+  <!-- WAITING / CONNECTING -->
+  <section id="screen-waiting" class="screen">
+    <div class="waiting-box">
+      <h2 id="waiting-title">Waiting for opponent&hellip;</h2>
+      <div id="waiting-host-info" class="hidden">
+        <p>Send this room code to your friend:</p>
+        <div class="room-code" id="room-code-display"></div>
+        <button id="btn-copy-code" class="btn btn-secondary">Copy Code</button>
+      </div>
+      <div class="spinner"></div>
+      <button id="btn-cancel-waiting" class="btn btn-link">Cancel</button>
+    </div>
+  </section>
+
+  <!-- CHARACTER SELECT -->
+  <section id="screen-select" class="screen">
+    <h2>Pick your secret character</h2>
+    <p class="sub">Your opponent will try to guess who you picked. Choose wisely.</p>
+    <div id="select-grid" class="char-grid"></div>
+    <div class="select-footer">
+      <button id="btn-confirm-select" class="btn btn-primary" disabled>Confirm Selection</button>
+      <p id="select-status" class="status-text"></p>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="screen-game" class="screen">
+    <div class="game-topbar">
+      <div class="you-are" id="you-are-badge"></div>
+      <div class="room-pill" id="game-room-pill"></div>
+    </div>
+
+    <div class="game-layout">
+      <div class="board-panel">
+        <div class="board-panel-header">
+          <h2>Their board</h2>
+          <p class="sub">Click a character to flip them down once you've ruled them out.</p>
+        </div>
+        <div id="game-grid" class="char-grid"></div>
+        <button id="btn-make-guess" class="btn btn-primary btn-guess">Make Final Guess</button>
+      </div>
+
+      <div class="side-panel">
+        <h2>Ask Questions</h2>
+        <div id="chat-log" class="chat-log"></div>
+        <form id="chat-form" class="chat-form">
+          <input id="chat-input" class="text-input" type="text" placeholder="Does your character bend fire?" autocomplete="off" />
+          <button type="submit" class="btn btn-secondary">Send</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- END -->
+  <section id="screen-end" class="screen">
+    <div class="end-box">
+      <h2 id="end-title"></h2>
+      <div id="end-reveal" class="end-reveal"></div>
+      <button id="btn-rematch" class="btn btn-primary">Play Again</button>
+      <button id="btn-back-menu" class="btn btn-link">Back to Menu</button>
+    </div>
+  </section>
+
+</main>
+
+<!-- GUESS PICKER MODAL -->
+<div id="modal-guess" class="modal hidden">
+  <div class="modal-box">
+    <h2>Who do you think they picked?</h2>
+    <div id="guess-grid" class="char-grid"></div>
+    <div class="modal-actions">
+      <button id="btn-guess-cancel" class="btn btn-link">Cancel</button>
+      <button id="btn-guess-submit" class="btn btn-primary" disabled>Lock In Guess</button>
+    </div>
+  </div>
+</div>
+
+<!-- INCOMING GUESS MODAL -->
+<div id="modal-incoming-guess" class="modal hidden">
+  <div class="modal-box">
+    <h2>Opponent's Guess</h2>
+    <p id="incoming-guess-text"></p>
+    <div class="modal-actions">
+      <button id="btn-incoming-no" class="btn btn-secondary">Nope, wrong!</button>
+      <button id="btn-incoming-yes" class="btn btn-primary">Yes, that's my character!</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="js/characters.js"></script>
+<script src="js/network.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

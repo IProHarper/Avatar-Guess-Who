@@ -37,7 +37,7 @@ const CHARACTERS = [
   { id: 'yangchen', name: 'Yangchen', nation: 'air', bender: true },
   { id: 'tenzin', name: 'Tenzin', nation: 'air', bender: true },
   { id: 'jinora', name: 'Jinora', nation: 'air', bender: true },
-  { id: 'ikki', name: 'Ikki', nation: 'air', bender: true },
+  { id: 'ikki', name: 'Ikki', nation: 'air', bender: false },
 ];
 
 function portraitSrc(char) {

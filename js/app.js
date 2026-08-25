@@ -74,12 +74,8 @@
     const card = document.createElement('div');
     card.className = 'char-card';
     card.dataset.id = char.id;
+    card.style.setProperty('--rot', `${cardRotation(char.id)}deg`);
     card.appendChild(portraitEl(char));
-
-    const name = document.createElement('div');
-    name.className = 'char-name';
-    name.textContent = char.name;
-    card.appendChild(name);
 
     const tag = document.createElement('div');
     tag.className = 'char-nation-tag';
@@ -90,9 +86,31 @@
     return card;
   }
 
-  function renderGrid(container, { onClick, selectable } = {}) {
+  // A fixed shuffle of the roster and a small fixed rotation per character,
+  // so every board looks like a scattered pile instead of a tidy grid, but
+  // stays in the same scattered layout for the rest of the session.
+  const SHUFFLED_CHARACTERS = shuffle(CHARACTERS);
+  const CARD_ROTATIONS = {};
+  CHARACTERS.forEach((char) => {
+    CARD_ROTATIONS[char.id] = Math.random() * 7 - 3.5;
+  });
+
+  function cardRotation(id) {
+    return CARD_ROTATIONS[id] || 0;
+  }
+
+  function shuffle(list) {
+    const arr = list.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function renderGrid(container, { onClick } = {}) {
     container.innerHTML = '';
-    CHARACTERS.forEach((char) => {
+    SHUFFLED_CHARACTERS.forEach((char) => {
       const card = buildCharCard(char, { onClick });
       container.appendChild(card);
     });

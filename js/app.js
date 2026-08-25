@@ -46,7 +46,16 @@
     const wrap = document.createElement('div');
     wrap.className = 'char-portrait';
     wrap.style.background = `linear-gradient(150deg, ${nation.color}, ${shade(nation.color, -18)})`;
-    wrap.textContent = char.emoji || initialsFor(char.name);
+
+    const img = document.createElement('img');
+    img.src = portraitSrc(char);
+    img.alt = char.name;
+    img.loading = 'lazy';
+    img.onerror = () => {
+      img.remove();
+      wrap.textContent = initialsFor(char.name);
+    };
+    wrap.appendChild(img);
     return wrap;
   }
 

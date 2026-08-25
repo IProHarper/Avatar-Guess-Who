@@ -39,11 +39,12 @@ or open `index.html` directly in two browser tabs/windows (works fine even witho
 ```
 index.html          Screens/markup for menu, waiting room, character select, game, end
 css/style.css        Styling and avatar rendering
-js/characters.js      Character roster + nation/element data
+js/characters.js      Character roster + nation/bender data + portrait paths
 js/network.js         Thin PeerJS wrapper (host/join/send/events)
 js/app.js             Game state machine and UI wiring
+img/characters/       Character portrait images
 ```
 
 ## Notes on the artwork
 
-Character "portraits" are generated in CSS/JS from each character's nation color and an initials/emoji glyph, rather than using artwork from the show — keeps the project free of copyrighted assets while still being instantly recognizable by name.
+Character portraits (`img/characters/*.jpg`) are cropped from a custom chibi-style character sheet, not artwork from the show — keeps the project free of copyrighted assets. To swap in your own art, drop a same-named `<id>.jpg` into `img/characters/` for each entry in `js/characters.js` (the `id` field is the filename).

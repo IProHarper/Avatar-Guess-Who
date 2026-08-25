@@ -212,19 +212,14 @@ html, body {
 @media (max-width: 560px) { .char-grid { grid-template-columns: repeat(3, 1fr); } }
 
 .char-card {
-  background: var(--panel);
-  border: 2px solid var(--border);
-  border-radius: var(--radius);
-  padding: 6px;
-  text-align: center;
   cursor: pointer;
   user-select: none;
   position: relative;
-  transition: border-color 0.15s ease, transform 0.15s ease, opacity 0.2s ease, z-index 0s;
+  border-radius: 7px;
+  transition: transform 0.15s ease, opacity 0.2s ease, z-index 0s;
 }
 .char-card:hover {
-  border-color: var(--accent);
-  transform: translateY(-3px) scale(1.04);
+  transform: scale(1.06);
   z-index: 2;
 }
 
@@ -250,15 +245,8 @@ html, body {
   display: block;
 }
 
-.char-nation-tag {
-  font-size: 0.65rem;
-  color: var(--text-dim);
-  margin-top: 5px;
-}
-
 .char-card.selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent);
+  box-shadow: 0 0 0 3px var(--accent);
 }
 
 .char-card.eliminated {

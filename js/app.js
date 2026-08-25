@@ -76,11 +76,6 @@
     card.dataset.id = char.id;
     card.appendChild(portraitEl(char));
 
-    const tag = document.createElement('div');
-    tag.className = 'char-nation-tag';
-    tag.textContent = `${NATIONS[char.nation].icon} ${NATIONS[char.nation].label}`;
-    card.appendChild(tag);
-
     if (onClick) card.addEventListener('click', () => onClick(char, card));
     return card;
   }

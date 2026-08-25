@@ -30,6 +30,15 @@ html, body {
 
 .hidden { display: none !important; }
 
+.ai-banner {
+  background: linear-gradient(90deg, rgba(240,180,41,0.16), rgba(240,180,41,0.05));
+  border-bottom: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 8px 20px;
+}
+
 .app-header {
   display: flex;
   align-items: center;
@@ -211,18 +220,17 @@ html, body {
   cursor: pointer;
   user-select: none;
   position: relative;
-  transform: rotate(var(--rot, 0deg));
   transition: border-color 0.15s ease, transform 0.15s ease, opacity 0.2s ease, z-index 0s;
 }
 .char-card:hover {
   border-color: var(--accent);
-  transform: rotate(0deg) translateY(-3px) scale(1.04);
+  transform: translateY(-3px) scale(1.04);
   z-index: 2;
 }
 
 .char-portrait {
   width: 100%;
-  aspect-ratio: 152 / 167;
+  aspect-ratio: 1 / 1;
   border-radius: 7px;
   display: flex;
   align-items: center;

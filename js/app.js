@@ -74,7 +74,6 @@
     const card = document.createElement('div');
     card.className = 'char-card';
     card.dataset.id = char.id;
-    card.style.setProperty('--rot', `${cardRotation(char.id)}deg`);
     card.appendChild(portraitEl(char));
 
     const tag = document.createElement('div');
@@ -86,18 +85,10 @@
     return card;
   }
 
-  // A fixed shuffle of the roster and a small fixed rotation per character,
-  // so every board looks like a scattered pile instead of a tidy grid, but
-  // stays in the same scattered layout for the rest of the session.
+  // A fixed shuffle of the roster so every board looks like a scattered
+  // pile instead of characters lined up by nation, but stays in the same
+  // scattered order for the rest of the session.
   const SHUFFLED_CHARACTERS = shuffle(CHARACTERS);
-  const CARD_ROTATIONS = {};
-  CHARACTERS.forEach((char) => {
-    CARD_ROTATIONS[char.id] = Math.random() * 7 - 3.5;
-  });
-
-  function cardRotation(id) {
-    return CARD_ROTATIONS[id] || 0;
-  }
 
   function shuffle(list) {
     const arr = list.slice();

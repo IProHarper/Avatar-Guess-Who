@@ -21,6 +21,9 @@
 
 html {
   min-height: 100%;
+  /* Prevents the iOS/Android double-tap-to-zoom gesture from firing when
+     players tap characters quickly, while still allowing pinch-to-zoom. */
+  touch-action: manipulation;
 }
 
 body {
@@ -53,6 +56,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 16px 24px;
   border-bottom: 1px solid var(--border);
   background: linear-gradient(90deg, rgba(232,147,58,0.12), rgba(47,127,184,0.12) 35%, rgba(58,125,68,0.12) 65%, rgba(179,39,45,0.12));
@@ -62,6 +67,12 @@ body {
   margin: 0;
   font-size: 1.4rem;
   letter-spacing: 0.02em;
+}
+
+@media (max-width: 560px) {
+  .app-header { padding: 12px 16px; }
+  .app-header h1 { font-size: 1.15rem; }
+  .ai-banner { padding: 6px 12px; font-size: 0.72rem; }
 }
 
 .glyph { display: inline-block; margin-right: 6px; }
@@ -86,10 +97,26 @@ body {
 }
 .conn-status.disconnected .dot { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
 
-#app {
+.layout-with-chat {
   max-width: 1100px;
   margin: 0 auto;
   padding: 28px 20px 60px;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+#app {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  /* Leaves room for the fixed, collapsed chat drawer at the bottom. */
+  .layout-with-chat { padding-bottom: 80px; }
+}
+@media (max-width: 560px) {
+  .layout-with-chat { padding: 18px 14px 80px; }
 }
 
 .screen { display: none; }
@@ -107,15 +134,23 @@ body {
   margin: 0 auto 32px;
 }
 
+.no-network-note {
+  text-align: center;
+  margin-top: -20px;
+}
+
 .menu-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-  max-width: 720px;
+  max-width: 980px;
   margin: 0 auto;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 780px) {
+  .menu-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) {
   .menu-grid { grid-template-columns: 1fr; }
 }
 
@@ -150,9 +185,14 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.08s ease, opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 .btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+@media (max-width: 560px) {
+  .btn { padding: 12px 18px; font-size: 1rem; }
+}
 
 .btn-primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
@@ -219,7 +259,8 @@ body {
   padding: 10px;
 }
 @media (max-width: 900px) { .char-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 560px) { .char-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 560px) { .char-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; } }
+@media (max-width: 420px) { .char-grid { grid-template-columns: repeat(2, 1fr); } }
 
 .char-card {
   cursor: pointer;
@@ -227,6 +268,7 @@ body {
   position: relative;
   border-radius: 7px;
   transition: transform 0.15s ease, opacity 0.2s ease, z-index 0s;
+  -webkit-tap-highlight-color: transparent;
 }
 .char-card:hover {
   transform: scale(1.06);
@@ -253,6 +295,19 @@ body {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* On the select screen only: everyone starts slightly greyed out, so the
+   character you actually pick pops into full colour. */
+#select-grid .char-portrait {
+  filter: grayscale(88%) brightness(0.82);
+  transition: filter 0.25s ease;
+}
+#select-grid .char-card:hover .char-portrait {
+  filter: grayscale(45%) brightness(0.92);
+}
+#select-grid .char-card.selected .char-portrait {
+  filter: grayscale(0%) brightness(1);
 }
 
 .char-card.selected {
@@ -283,6 +338,24 @@ body {
   margin-top: 10px;
 }
 
+.select-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Golden picture-frame treatment for a character portrait shown on its own,
+   e.g. the "you are" badge and the end-screen reveals. */
+.char-portrait.framed {
+  border: 2px solid var(--accent);
+  box-shadow:
+    0 0 0 3px var(--accent-dark),
+    0 0 14px rgba(240, 176, 41, 0.55),
+    inset 0 0 6px rgba(0, 0, 0, 0.45);
+}
+
 .status-text { color: var(--text-dim); font-size: 0.85rem; min-height: 1.2em; }
 
 .game-topbar {
@@ -303,17 +376,26 @@ body {
 }
 .you-are strong { color: var(--accent); }
 
-.game-layout {
-  display: grid;
-  grid-template-columns: 2.2fr 1fr;
-  gap: 24px;
-  align-items: start;
-}
-@media (max-width: 860px) {
-  .game-layout { grid-template-columns: 1fr; }
+.you-are {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 16px 5px 5px;
 }
 
-.board-panel, .side-panel {
+.you-are-portrait {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+.you-are-portrait .char-portrait {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  font-size: 0.75rem;
+}
+
+.board-panel {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -328,8 +410,76 @@ body {
   margin-top: 8px;
 }
 
-.side-panel { display: flex; flex-direction: column; height: 100%; }
-.side-panel h2 { margin-top: 0; }
+/* Persistent chat panel — sits beside the board on desktop and stays
+   mounted (not re-created) while the screen switches from game to end,
+   so players can keep banter going after the match. */
+.chat-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 340px;
+  min-width: 0;
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 40px);
+}
+
+.chat-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.chat-panel-header h2 { margin: 0; }
+
+.chat-toggle-btn {
+  display: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 860px) {
+  .chat-panel {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 40;
+    max-height: 66vh;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+    transition: max-height 0.25s ease;
+  }
+
+  .chat-panel-header { cursor: pointer; }
+
+  .chat-panel:not(.expanded) {
+    max-height: 52px;
+    overflow: hidden;
+  }
+  .chat-panel:not(.expanded) .chat-log,
+  .chat-panel:not(.expanded) .chat-form {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .chat-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--panel-alt);
+    color: var(--text);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+  .chat-panel.expanded .chat-toggle-btn { transform: rotate(180deg); }
+}
 
 .chat-log {
   flex: 1;
@@ -344,6 +494,10 @@ body {
   flex-direction: column;
   gap: 6px;
   margin-bottom: 10px;
+}
+
+@media (max-width: 860px) {
+  .chat-log { min-height: 160px; }
 }
 
 .chat-msg {
@@ -382,8 +536,15 @@ body {
   margin: 20px 0;
   flex-wrap: wrap;
 }
-.end-reveal .reveal-card { text-align: center; }
+.end-reveal .reveal-card { text-align: center; max-width: 140px; }
 .end-reveal .char-portrait { width: 84px; height: 84px; margin: 0 auto 6px; }
+.end-reveal .reveal-waiting {
+  color: var(--text-dim);
+  font-style: italic;
+  font-size: 0.85rem;
+  max-width: 200px;
+  align-self: center;
+}
 
 .modal {
   position: fixed;
@@ -410,4 +571,8 @@ body {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 12px;
+}
+
+@media (max-width: 560px) {
+  .modal-box { padding: 16px; }
 }

@@ -40,6 +40,26 @@ const CHARACTERS = [
   { id: 'ikki', name: 'Ikki', nation: 'air', bender: false },
 ];
 
+// Practice-mode bot flavor text — original lines in Iroh's voice, not
+// verbatim show dialogue (matches this project's no-copyrighted-assets rule).
+const IROH_QUOTES = [
+  "Sharing a good cup of tea with a friend is one of life's true pleasures.",
+  'Pride is not the opposite of shame, but its source.',
+  'It is important to draw wisdom from many different places. Taken from only one place, it becomes rigid and stale.',
+  "Destiny is a funny thing — you never know how it's going to work out.",
+  'In the darkest times, hope is something you give yourself.',
+  'A single, brief moment of peace can set a person on a whole new path.',
+  'Sometimes the best way to solve your own problems is to help someone else.',
+  'Failure is only the opportunity to begin again, this time more wisely.',
+  'Would you like some tea? It always helps me think.',
+  'Never give up without a fight.',
+  'The best tea, like the best stories, needs time to steep.',
+  'Life happens wherever you are, whether you make it or not.',
+  'Passion is the source of our finest moments — and our greatest mistakes.',
+  'Patience, my friend. All good things come to those who wait, especially good tea.',
+  'Ask me anything — I answer best over a warm cup of jasmine tea.',
+];
+
 function portraitSrc(char) {
   return `img/characters/${char.id}.jpg`;
 }

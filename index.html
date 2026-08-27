@@ -18,11 +18,13 @@
   <div id="conn-status" class="conn-status hidden"></div>
 </header>
 
+<div class="layout-with-chat">
 <main id="app">
 
   <!-- MENU -->
   <section id="screen-menu" class="screen active">
     <p class="tagline">A two-player, play-over-the-internet "Guess Who?" set in the world of Avatar: The Last Airbender.</p>
+    <p id="no-network-note" class="sub no-network-note hidden">Multiplayer needs the full hosted site — try Practice below to explore the board solo.</p>
 
     <div class="menu-grid">
       <div class="menu-card">
@@ -36,6 +38,12 @@
         <p>Enter the room code your friend sent you.</p>
         <input id="input-join-code" class="text-input" type="text" placeholder="room code" maxlength="24" autocomplete="off" autocapitalize="off" spellcheck="false" />
         <button id="btn-join" class="btn btn-primary">Join Game</button>
+      </div>
+
+      <div class="menu-card">
+        <h2>Practice</h2>
+        <p>Play solo against Uncle Iroh — see the board and try out questions before you face a friend.</p>
+        <button id="btn-practice" class="btn btn-secondary">Practice</button>
       </div>
     </div>
 
@@ -62,7 +70,10 @@
     <p class="sub">Your opponent will try to guess who you picked. Choose wisely.</p>
     <div id="select-grid" class="char-grid"></div>
     <div class="select-footer">
-      <button id="btn-confirm-select" class="btn btn-primary" disabled>Confirm Selection</button>
+      <div class="select-actions">
+        <button id="btn-random-select" class="btn btn-secondary">🎲 Random</button>
+        <button id="btn-confirm-select" class="btn btn-primary" disabled>Confirm Selection</button>
+      </div>
       <p id="select-status" class="status-text"></p>
     </div>
   </section>
@@ -74,24 +85,13 @@
       <div class="room-pill" id="game-room-pill"></div>
     </div>
 
-    <div class="game-layout">
-      <div class="board-panel">
-        <div class="board-panel-header">
-          <h2>Their board</h2>
-          <p class="sub">Click a character to flip them down once you've ruled them out.</p>
-        </div>
-        <div id="game-grid" class="char-grid"></div>
-        <button id="btn-make-guess" class="btn btn-primary btn-guess">Make Final Guess</button>
+    <div class="board-panel">
+      <div class="board-panel-header">
+        <h2>Their board</h2>
+        <p class="sub">Click a character to flip them down once you've ruled them out.</p>
       </div>
-
-      <div class="side-panel">
-        <h2>Ask Questions</h2>
-        <div id="chat-log" class="chat-log"></div>
-        <form id="chat-form" class="chat-form">
-          <input id="chat-input" class="text-input" type="text" placeholder="Does your character bend fire?" autocomplete="off" />
-          <button type="submit" class="btn btn-secondary">Send</button>
-        </form>
-      </div>
+      <div id="game-grid" class="char-grid"></div>
+      <button id="btn-make-guess" class="btn btn-primary btn-guess">Make Final Guess</button>
     </div>
   </section>
 
@@ -106,6 +106,20 @@
   </section>
 
 </main>
+
+<!-- PERSISTENT CHAT (visible during game + end screens, stays open to banter after the match) -->
+<aside id="chat-panel" class="chat-panel hidden">
+  <div class="chat-panel-header" id="chat-panel-toggle">
+    <h2>Ask Questions</h2>
+    <button type="button" id="btn-chat-toggle" class="chat-toggle-btn" aria-label="Toggle chat">▲</button>
+  </div>
+  <div id="chat-log" class="chat-log"></div>
+  <form id="chat-form" class="chat-form">
+    <input id="chat-input" class="text-input" type="text" placeholder="Does your character bend fire?" autocomplete="off" />
+    <button type="submit" class="btn btn-secondary">Send</button>
+  </form>
+</aside>
+</div>
 
 <!-- GUESS PICKER MODAL -->
 <div id="modal-guess" class="modal hidden">

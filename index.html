@@ -67,7 +67,7 @@
   <!-- CHARACTER SELECT -->
   <section id="screen-select" class="screen">
     <h2>Pick your secret character</h2>
-    <p class="sub">Your opponent will try to guess who you picked. Choose wisely.</p>
+    <p class="sub">Your opponent will try to guess who you picked. Choose wisely. Tap the 🔍 on a card to see the art up close.</p>
     <div id="select-grid" class="char-grid"></div>
     <div class="select-footer">
       <div class="select-actions">
@@ -88,7 +88,7 @@
     <div class="board-panel">
       <div class="board-panel-header">
         <h2>Their board</h2>
-        <p class="sub">Click a character to flip them down once you've ruled them out.</p>
+        <p class="sub">Click a character to flip them down once you've ruled them out. Tap the 🔍 on a card for a closer look at the art.</p>
       </div>
       <div id="game-grid" class="char-grid"></div>
       <button id="btn-make-guess" class="btn btn-primary btn-guess">Make Final Guess</button>
@@ -131,6 +131,15 @@
       <button id="btn-guess-submit" class="btn btn-primary" disabled>Lock In Guess</button>
     </div>
   </div>
+</div>
+
+<!-- CHARACTER ZOOM / LIGHTBOX -->
+<div id="modal-portrait" class="modal portrait-modal hidden">
+  <button id="btn-portrait-close" class="portrait-close" aria-label="Close">&times;</button>
+  <figure class="portrait-lightbox">
+    <div id="portrait-lightbox-img" class="portrait-lightbox-img"></div>
+    <figcaption id="portrait-lightbox-caption"></figcaption>
+  </figure>
 </div>
 
 <!-- INCOMING GUESS MODAL -->

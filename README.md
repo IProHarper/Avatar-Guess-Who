@@ -10,9 +10,10 @@ Networking uses [PeerJS](https://peerjs.com/) for a direct WebRTC connection bet
 2. They send that code to the other player (text, Discord, whatever).
 3. The other player clicks **Join Game**, enters the code, and connects.
 4. Both players secretly pick a character from the grid and hit **Confirm Selection**.
-5. Take turns asking yes/no questions out loud (or in the chat box) and flip down characters on your board as you rule them out.
+5. Take turns asking yes/no questions out loud (or in the chat box) and flip down characters on your board as you rule them out. Tap the 🔍 on any card for a full-size look at the artwork, or click your own character chip (top-left) to enlarge it.
 6. When you think you know their character, hit **Make Final Guess**, pick a character, and lock it in. The opponent confirms whether it's correct.
-7. First to correctly guess the other's character wins. Hit **Play Again** for a rematch without leaving the room.
+7. If your guess is wrong, play continues. If it's right, the opponent gets **one final "equalizer" guess** to try to tie it up: guess their character correctly too and the round is a **draw**; guess wrong (or skip) and you win.
+8. Hit **Play Again** for a rematch without leaving the room.
 
 Note: since there's no server validating anything, the game trusts both players to answer honestly (yes/no to questions, confirming guesses) — same as playing Guess Who at a table.
 
@@ -47,4 +48,4 @@ img/characters/       Character portrait images
 
 ## Notes on the artwork
 
-Character portraits (`img/characters/*.jpg`) are cropped from a custom chibi-style character sheet, not artwork from the show — keeps the project free of copyrighted assets. To swap in your own art, drop a same-named `<id>.jpg` into `img/characters/` for each entry in `js/characters.js` (the `id` field is the filename).
+Character portraits (`img/characters/*.jpg`) are cropped from a custom, AI-generated chibi-style character sheet, not artwork from the show — keeps the project free of copyrighted assets. To swap in your own art, drop a same-named `<id>.jpg` into `img/characters/` for each entry in `js/characters.js` (the `id` field is the filename).

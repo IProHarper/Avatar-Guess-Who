@@ -119,6 +119,20 @@ body {
   .layout-with-chat { padding: 18px 14px 80px; }
 }
 
+/* On much larger screens, let the board (and everything beside it) use more
+   of the width so the character portraits scale up instead of leaving big
+   empty margins. The chat panel keeps its fixed width, so the extra room
+   goes to the board. */
+@media (min-width: 1400px) {
+  .layout-with-chat { max-width: 1400px; gap: 32px; }
+  .char-grid { gap: 22px; }
+}
+@media (min-width: 1750px) {
+  .layout-with-chat { max-width: 1680px; }
+  .char-grid { gap: 28px; }
+  .chat-panel { flex-basis: 380px; }
+}
+
 .screen { display: none; }
 .screen.active { display: block; animation: fadein 0.25s ease; }
 
@@ -297,6 +311,44 @@ body {
   display: block;
 }
 
+/* Magnifier button in the corner of every character card — opens the
+   full-size portrait so players judging by the art can get a close look.
+   Always visible (mobile has no hover) but stays out of the way. */
+.char-zoom-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 3;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(8, 12, 24, 0.62);
+  color: #fff;
+  font-size: 0.82rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.55;
+  transition: opacity 0.15s ease, transform 0.1s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.char-zoom-btn:hover,
+.char-zoom-btn:focus-visible {
+  opacity: 1;
+  background: rgba(8, 12, 24, 0.85);
+}
+.char-zoom-btn:active { transform: scale(0.9); }
+.char-card:hover .char-zoom-btn { opacity: 0.9; }
+.char-card.eliminated .char-zoom-btn { opacity: 0.85; }
+
+@media (max-width: 560px) {
+  .char-zoom-btn { width: 30px; height: 30px; font-size: 0.9rem; opacity: 0.7; }
+}
+
 /* On the select screen only: everyone starts slightly greyed out, so the
    character you actually pick pops into full colour. */
 #select-grid .char-portrait {
@@ -381,6 +433,14 @@ body {
   align-items: center;
   gap: 10px;
   padding: 5px 16px 5px 5px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.you-are:hover { border-color: var(--accent); background: var(--panel); }
+.you-are .zoom-hint {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  white-space: nowrap;
 }
 
 .you-are-portrait {
@@ -575,4 +635,63 @@ body {
 
 @media (max-width: 560px) {
   .modal-box { padding: 16px; }
+}
+
+/* ---------- character zoom / lightbox ---------- */
+.portrait-modal {
+  background: rgba(3, 6, 14, 0.9);
+  flex-direction: column;
+  z-index: 60;
+  cursor: zoom-out;
+}
+
+.portrait-close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.portrait-close:hover { background: rgba(255, 255, 255, 0.22); }
+
+.portrait-lightbox {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  cursor: default;
+}
+
+.portrait-lightbox-img {
+  width: min(78vw, 78vh, 440px);
+  height: min(78vw, 78vh, 440px);
+}
+.portrait-lightbox-img .char-portrait {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius);
+  font-size: 3rem;
+}
+
+.portrait-lightbox figcaption {
+  text-align: center;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.portrait-lightbox figcaption .caption-sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-dim);
 }

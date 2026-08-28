@@ -19,6 +19,10 @@
     endInfo: null,
     practiceMode: false,
     botCharacterId: null, // Practice-mode bot's secret character
+    // "Equalizer" rule: when your character is correctly guessed, you get one
+    // final guess to try to tie it up. A correct equalizer makes it a draw.
+    equalizerActive: false, // this player is picking their equalizer guess
+    incomingIsEqualizer: false, // the incoming-guess modal is showing an equalizer guess
   };
 
   // ---------- DOM helpers ----------
@@ -89,9 +93,55 @@
     card.dataset.id = char.id;
     card.appendChild(portraitEl(char));
 
+    // Corner magnifier — opens the full-size portrait without triggering the
+    // card's own action (select / flip down / pick a guess).
+    const zoom = document.createElement('button');
+    zoom.type = 'button';
+    zoom.className = 'char-zoom-btn';
+    zoom.textContent = '🔍';
+    zoom.setAttribute('aria-label', `View ${char.name} larger`);
+    zoom.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openPortraitView(char);
+    });
+    card.appendChild(zoom);
+
     if (onClick) card.addEventListener('click', () => onClick(char, card));
     return card;
   }
+
+  // ---------- character zoom / lightbox ----------
+  // showDetails adds nation + bender info — only used for your own secret
+  // character, never for opponent-board cards (that's what questions are for).
+  function openPortraitView(char, { showDetails = false } = {}) {
+    const holder = $('#portrait-lightbox-img');
+    holder.innerHTML = '';
+    holder.appendChild(portraitEl(char, { framed: true }));
+    let caption = char.name;
+    if (showDetails) {
+      const nation = NATIONS[char.nation];
+      caption += `<span class="caption-sub">${nation.icon} ${nation.label} · ${
+        char.bender ? 'Bender' : 'Non-bender'
+      }</span>`;
+    }
+    $('#portrait-lightbox-caption').innerHTML = caption;
+    $('#modal-portrait').classList.remove('hidden');
+  }
+
+  function closePortraitView() {
+    $('#modal-portrait').classList.add('hidden');
+  }
+
+  $('#btn-portrait-close').addEventListener('click', closePortraitView);
+  // Click anywhere on the dark backdrop (but not the figure) closes it.
+  $('#modal-portrait').addEventListener('click', (e) => {
+    if (e.target === $('#modal-portrait')) closePortraitView();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('#modal-portrait').classList.contains('hidden')) {
+      closePortraitView();
+    }
+  });
 
   // A shuffle of the roster so every board looks like a scattered pile
   // instead of characters lined up by nation. Reshuffled at the start of
@@ -156,10 +206,19 @@
       case 'guess': {
         const correct = msg.characterId === state.botCharacterId;
         setTimeout(() => handleMessage({ type: 'guessResult', correct }), 500 + Math.random() * 500);
+        if (correct) {
+          // The bot takes its one equalizer guess. It doesn't know your
+          // character, so it guesses at random — long odds, like a real scramble.
+          const pick = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
+          setTimeout(
+            () => handleMessage({ type: 'equalizerGuess', characterId: pick.id }),
+            1400 + Math.random() * 600
+          );
+        }
         break;
       }
       default:
-        break; // 'ready', 'reveal', 'guessResult', 'rematch' need no bot reaction
+        break; // 'ready', 'reveal', 'guessResult', 'equalizerResult', 'rematch' need no bot reaction
     }
   }
 
@@ -262,6 +321,8 @@
         break;
       case 'guess': {
         const char = CHARACTERS.find((c) => c.id === msg.characterId);
+        state.incomingIsEqualizer = false;
+        $('#modal-incoming-guess').querySelector('h2').textContent = "Opponent's Guess";
         $('#incoming-guess-text').textContent = `Your opponent thinks your character is ${char.name}. Are they right?`;
         $('#modal-incoming-guess').classList.remove('hidden');
         state._incomingGuessId = msg.characterId;
@@ -275,9 +336,44 @@
           // won't otherwise learn it before the reveal screen.
           state.opponentCharacterId = char.id;
           sendMessage({ type: 'reveal', characterId: state.myCharacterId });
-          endGame({ won: true, myChar: state.myCharacterId, guessedChar: char.id });
+          // Don't end yet: the opponent gets one final guess to equalize.
+          $('#btn-make-guess').disabled = true;
+          $('#btn-make-guess').textContent = 'Opponent is taking their equalizer guess…';
+          addChatMsg(
+            `Your guess "${char.name}" was correct! Your opponent gets one final guess to try to tie it up…`,
+            'system'
+          );
         } else {
           addChatMsg(`Guess "${char.name}" was wrong. Keep going!`, 'system');
+        }
+        state.pendingGuessId = null;
+        break;
+      }
+      case 'equalizerGuess': {
+        if (!msg.characterId) {
+          // Opponent skipped their equalizer and conceded.
+          sendMessage({ type: 'equalizerResult', correct: false });
+          addChatMsg('Your opponent skipped their equalizer guess — you win!', 'system');
+          endGame({ outcome: 'win', myChar: state.myCharacterId, guessedChar: state.opponentCharacterId });
+          break;
+        }
+        const char = CHARACTERS.find((c) => c.id === msg.characterId);
+        state._incomingGuessId = msg.characterId;
+        state.incomingIsEqualizer = true;
+        $('#modal-incoming-guess').querySelector('h2').textContent = "Opponent's Equalizer Guess";
+        $('#incoming-guess-text').textContent =
+          `Final equalizer guess: your opponent thinks your character is ${char.name}. Are they right?`;
+        $('#modal-incoming-guess').classList.remove('hidden');
+        break;
+      }
+      case 'equalizerResult': {
+        // Confirmation of this player's own equalizer guess.
+        if (msg.correct) {
+          addChatMsg("Your equalizer guess was correct — it's a draw!", 'system');
+          endGame({ outcome: 'draw', myChar: state.myCharacterId, guessedChar: state.opponentCharacterId });
+        } else {
+          addChatMsg('Your equalizer guess was wrong — you lose this round.', 'system');
+          endGame({ outcome: 'lose', myChar: state.myCharacterId, guessedChar: state.opponentCharacterId });
         }
         state.pendingGuessId = null;
         break;
@@ -302,10 +398,14 @@
     state.opponentReady = false;
     state.opponentCharacterId = null;
     state.endInfo = null;
+    state.pendingGuessId = null;
+    state.equalizerActive = false;
+    state.incomingIsEqualizer = false;
     SHUFFLED_CHARACTERS = shuffle(CHARACTERS);
     $('#btn-confirm-select').disabled = true;
     renderGrid($('#select-grid'), {
       onClick: (char, card) => {
+        if (state.iAmReady) return; // locked in — but the zoom button still works
         document.querySelectorAll('#select-grid .char-card.selected').forEach((c) => c.classList.remove('selected'));
         card.classList.add('selected');
         state.myCharacterId = char.id;
@@ -343,7 +443,6 @@
     if (!state.myCharacterId) return;
     state.iAmReady = true;
     $('#btn-confirm-select').disabled = true;
-    document.querySelectorAll('#select-grid .char-card').forEach((c) => (c.style.pointerEvents = 'none'));
     sendMessage({ type: 'ready' });
     updateSelectStatus();
     maybeStartGame();
@@ -365,9 +464,21 @@
     frame.appendChild(portraitEl(myChar, { framed: true }));
     badge.appendChild(frame);
     const label = document.createElement('span');
-    label.innerHTML = `Your character: <strong>${myChar.name}</strong>`;
+    label.innerHTML = `Your character: <strong>${myChar.name}</strong><span class="zoom-hint"> · 🔍 tap to enlarge</span>`;
     badge.appendChild(label);
+    badge.setAttribute('role', 'button');
+    badge.setAttribute('tabindex', '0');
+    badge.setAttribute('aria-label', `View your character ${myChar.name} larger`);
+    badge.onclick = () => openPortraitView(myChar, { showDetails: true });
+    badge.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openPortraitView(myChar, { showDetails: true });
+      }
+    };
 
+    $('#btn-make-guess').disabled = false;
+    $('#btn-make-guess').textContent = 'Make Final Guess';
     $('#game-room-pill').textContent = state.practiceMode ? 'Practice Mode' : `Room: ${state.roomCode}`;
     $('#chat-log').innerHTML = '';
     $('#chat-panel').classList.remove('expanded');
@@ -395,7 +506,7 @@
   });
 
   // ---------- guessing (outgoing) ----------
-  $('#btn-make-guess').addEventListener('click', () => {
+  function openGuessPicker() {
     state._modalGuessId = null;
     $('#btn-guess-submit').disabled = true;
     renderGrid($('#guess-grid'), {
@@ -407,38 +518,90 @@
       },
     });
     $('#modal-guess').classList.remove('hidden');
+  }
+
+  $('#btn-make-guess').addEventListener('click', () => {
+    state.equalizerActive = false;
+    $('#modal-guess').querySelector('h2').textContent = 'Who do you think they picked?';
+    $('#btn-guess-submit').textContent = 'Lock In Guess';
+    $('#btn-guess-cancel').textContent = 'Cancel';
+    openGuessPicker();
   });
+
+  // Opened when the opponent has correctly guessed this player's character:
+  // one final guess to try to tie the round.
+  function openEqualizerPicker() {
+    state.equalizerActive = true;
+    $('#modal-guess').querySelector('h2').textContent =
+      'They guessed right — take one final guess to tie it up';
+    $('#btn-guess-submit').textContent = 'Lock In Equalizer';
+    $('#btn-guess-cancel').textContent = 'Skip & Concede';
+    addChatMsg('Your character was guessed correctly. You get one final guess to equalize!', 'system');
+    openGuessPicker();
+  }
 
   $('#btn-guess-cancel').addEventListener('click', () => {
     $('#modal-guess').classList.add('hidden');
+    if (state.equalizerActive) {
+      state.equalizerActive = false;
+      sendMessage({ type: 'equalizerGuess', characterId: null });
+      addChatMsg('You skipped your equalizer guess and conceded the round.', 'system');
+    }
   });
 
   $('#btn-guess-submit').addEventListener('click', () => {
     if (!state._modalGuessId) return;
-    state.pendingGuessId = state._modalGuessId;
-    sendMessage({ type: 'guess', characterId: state._modalGuessId });
     const char = CHARACTERS.find((c) => c.id === state._modalGuessId);
-    addChatMsg(`You guessed: ${char.name}. Waiting on opponent to confirm…`, 'system');
+    state.pendingGuessId = state._modalGuessId;
     $('#modal-guess').classList.add('hidden');
+    if (state.equalizerActive) {
+      state.equalizerActive = false;
+      sendMessage({ type: 'equalizerGuess', characterId: state._modalGuessId });
+      addChatMsg(`Your equalizer guess: ${char.name}. Waiting on opponent to confirm…`, 'system');
+      return;
+    }
+    sendMessage({ type: 'guess', characterId: state._modalGuessId });
+    addChatMsg(`You guessed: ${char.name}. Waiting on opponent to confirm…`, 'system');
   });
 
   // ---------- guessing (incoming) ----------
   $('#btn-incoming-yes').addEventListener('click', () => {
-    sendMessage({ type: 'guessResult', correct: true });
     $('#modal-incoming-guess').classList.add('hidden');
-    endGame({ won: false, myChar: state.myCharacterId, guessedChar: state._incomingGuessId });
+    if (state.incomingIsEqualizer) {
+      // The opponent's final equalizer guess was correct → draw.
+      state.incomingIsEqualizer = false;
+      sendMessage({ type: 'equalizerResult', correct: true });
+      endGame({ outcome: 'draw', myChar: state.myCharacterId, guessedChar: state.opponentCharacterId });
+      return;
+    }
+    // The opponent guessed our character. We still get one equalizer guess.
+    sendMessage({ type: 'guessResult', correct: true });
+    openEqualizerPicker();
   });
 
   $('#btn-incoming-no').addEventListener('click', () => {
-    sendMessage({ type: 'guessResult', correct: false });
     $('#modal-incoming-guess').classList.add('hidden');
+    if (state.incomingIsEqualizer) {
+      // The opponent's final equalizer guess was wrong → we win.
+      state.incomingIsEqualizer = false;
+      sendMessage({ type: 'equalizerResult', correct: false });
+      endGame({ outcome: 'win', myChar: state.myCharacterId, guessedChar: state.opponentCharacterId });
+      return;
+    }
+    sendMessage({ type: 'guessResult', correct: false });
     addChatMsg('Opponent guessed wrong about your character. Game continues.', 'system');
   });
 
   // ---------- end screen ----------
-  function endGame({ won, myChar, guessedChar }) {
-    state.endInfo = { won, myChar, guessedChar };
-    $('#end-title').textContent = won ? 'You win! 🎉' : 'You lose — better luck next time!';
+  // outcome is 'win' | 'lose' | 'draw'.
+  function endGame({ outcome, myChar, guessedChar }) {
+    state.endInfo = { outcome, myChar, guessedChar };
+    const titles = {
+      win: 'You win! 🎉',
+      lose: 'You lose — better luck next time!',
+      draw: "It's a draw! 🤝",
+    };
+    $('#end-title').textContent = titles[outcome] || titles.lose;
     renderEndReveal();
     showScreen('end');
   }
@@ -459,20 +622,23 @@
   // until it's sent over, so the second card fills in a beat later).
   function renderEndReveal() {
     if (!state.endInfo) return;
-    const { won, myChar, guessedChar } = state.endInfo;
+    const { outcome, myChar, guessedChar } = state.endInfo;
     const myCharObj = CHARACTERS.find((c) => c.id === myChar);
 
     const reveal = $('#end-reveal');
     reveal.innerHTML = '';
     reveal.appendChild(buildRevealCard(myCharObj, 'Your character', false));
 
-    if (won) {
-      // A correct guess means the guessed character IS the opponent's character.
-      const guessedObj = CHARACTERS.find((c) => c.id === guessedChar);
-      reveal.appendChild(buildRevealCard(guessedObj, "Opponent's character — your guess!", true));
-    } else if (state.opponentCharacterId) {
-      const oppObj = CHARACTERS.find((c) => c.id === state.opponentCharacterId);
-      reveal.appendChild(buildRevealCard(oppObj, "Opponent's character", true));
+    const oppId = guessedChar || state.opponentCharacterId;
+    if (oppId) {
+      const oppObj = CHARACTERS.find((c) => c.id === oppId);
+      const label =
+        outcome === 'win'
+          ? "Opponent's character — your guess!"
+          : outcome === 'draw'
+          ? "Opponent's character — you both guessed right!"
+          : "Opponent's character";
+      reveal.appendChild(buildRevealCard(oppObj, label, true));
     } else {
       const waiting = document.createElement('div');
       waiting.className = 'reveal-card reveal-waiting';

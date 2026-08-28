@@ -69,10 +69,23 @@ body {
   letter-spacing: 0.02em;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-home {
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
 @media (max-width: 560px) {
   .app-header { padding: 12px 16px; }
   .app-header h1 { font-size: 1.15rem; }
   .ai-banner { padding: 6px 12px; font-size: 0.72rem; }
+  .btn-home { padding: 5px 10px; font-size: 0.78rem; }
 }
 
 .glyph { display: inline-block; margin-right: 6px; }
@@ -470,6 +483,43 @@ body {
   margin-top: 8px;
 }
 
+/* ---------- live shared "opponent's board" (read-only mirror) ---------- */
+.opp-board { margin-top: 18px; }
+
+.opp-board-summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  list-style: none;
+}
+.opp-board-summary::-webkit-details-marker { display: none; }
+.opp-board-summary::before {
+  content: '▸';
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  transition: transform 0.15s ease;
+}
+.opp-board[open] .opp-board-summary::before { transform: rotate(90deg); }
+
+.opp-board-title { font-size: 1.15rem; font-weight: 700; }
+
+.opp-count {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+.opp-board .sub { margin-top: 6px; }
+
+/* This grid is a mirror of what the opponent has done — not interactive. */
+.opp-grid .char-card { cursor: default; }
+.opp-grid .char-card:hover { transform: none; }
+
 /* Persistent chat panel — sits beside the board on desktop and stays
    mounted (not re-created) while the screen switches from game to end,
    so players can keep banter going after the match. */
@@ -652,6 +702,44 @@ body {
 @media (max-width: 560px) {
   .modal-box { padding: 16px; }
 }
+
+/* portraits shown in the "opponent's guess" modal */
+.guess-portraits {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 18px 0 6px;
+}
+.guess-portraits:empty { display: none; }
+
+.guess-portrait {
+  width: 132px;
+  max-width: 40vw;
+  text-align: center;
+}
+.guess-portrait .char-portrait {
+  width: 100%;
+  height: auto;
+  font-size: 2rem;
+}
+.guess-portrait-label {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.guess-portrait.is-right .char-portrait.framed {
+  border-color: var(--success);
+  box-shadow: 0 0 0 3px rgba(58, 157, 93, 0.35), 0 0 14px rgba(58, 157, 93, 0.5);
+}
+.guess-portrait.is-wrong .char-portrait.framed {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.35), 0 0 14px rgba(192, 57, 43, 0.5);
+}
+.guess-portrait.is-right .guess-portrait-label { color: var(--success); }
+.guess-portrait.is-wrong .guess-portrait-label { color: #e07a6d; }
 
 /* ---------- transient toast + wrong-guess feedback ---------- */
 .toast {

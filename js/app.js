@@ -13,6 +13,7 @@
     opponentReady: false,
     iAmReady: false,
     eliminated: new Set(), // ids the local player has flipped down on the opponent's board
+    oppEliminated: new Set(), // ids the opponent has flipped down (mirrored via 'board' messages)
     pendingGuessId: null,
     myName: 'You',
     opponentCharacterId: null, // filled in once the opponent reveals their character at game end
@@ -42,7 +43,20 @@
     // Chat is a persistent panel (outside the screens) so it can stay open
     // across the game -> end transition and keep banter going.
     $('#chat-panel').classList.toggle('hidden', name !== 'game' && name !== 'end');
+    // Home button on every screen but the menu (you're already home there).
+    $('#btn-home').classList.toggle('hidden', name === 'menu');
   }
+
+  // Return to the menu from anywhere. Reloading is the cleanest reset — it
+  // tears down the peer connection and clears all game state.
+  $('#btn-home').addEventListener('click', () => {
+    const midMatch = screens.select.classList.contains('active') || screens.game.classList.contains('active');
+    if (midMatch && !confirm('Leave this game and go back to the menu? Your opponent will be disconnected.')) {
+      return;
+    }
+    net.destroy();
+    location.reload();
+  });
 
   function setConnStatus(connected) {
     const el = $('#conn-status');
@@ -166,6 +180,28 @@
     });
   }
 
+  // ---------- live shared board ----------
+  // Push this player's flipped-down characters to the opponent so their
+  // read-only "Opponent's board" panel stays in sync. Whole set every time —
+  // small, and self-healing if a message is missed.
+  function sendBoardState() {
+    if (state.practiceMode) return;
+    sendMessage({ type: 'board', eliminated: [...state.eliminated] });
+  }
+
+  function renderOppBoard() {
+    const grid = $('#opp-grid');
+    if (grid.childElementCount === 0) {
+      SHUFFLED_CHARACTERS.forEach((char) => grid.appendChild(buildCharCard(char)));
+    }
+    grid.querySelectorAll('.char-card').forEach((card) => {
+      card.classList.toggle('eliminated', state.oppEliminated.has(card.dataset.id));
+    });
+    const n = state.oppEliminated.size;
+    $('#opp-ruled-count').textContent =
+      n === 0 ? 'nothing ruled out yet' : `${n} of ${CHARACTERS.length} ruled out`;
+  }
+
   // ---------- chat ----------
   function addChatMsg(text, kind) {
     const log = $('#chat-log');
@@ -202,6 +238,7 @@
     if (!card.classList.contains('eliminated')) {
       card.classList.add('eliminated');
       state.eliminated.add(char.id);
+      sendBoardState();
     }
   }
 
@@ -248,7 +285,7 @@
         break;
       }
       default:
-        break; // 'ready', 'reveal', 'guessResult', 'equalizerResult', 'rematch' need no bot reaction
+        break; // 'ready', 'board', 'reveal', 'guessResult', 'equalizerResult', 'rematch' need no bot reaction
     }
   }
 
@@ -349,6 +386,10 @@
       case 'chat':
         addChatMsg(msg.text, 'them');
         break;
+      case 'board':
+        state.oppEliminated = new Set(msg.eliminated || []);
+        renderOppBoard();
+        break;
       case 'guess': {
         const char = CHARACTERS.find((c) => c.id === msg.characterId);
         state.incomingIsEqualizer = false;
@@ -426,6 +467,8 @@
     state.pendingGuessId = null;
     state.equalizerActive = false;
     state.incomingIsEqualizer = false;
+    state.eliminated = new Set();
+    state.oppEliminated = new Set();
     SHUFFLED_CHARACTERS = shuffle(CHARACTERS);
     $('#btn-confirm-select').disabled = true;
     renderGrid($('#select-grid'), {
@@ -480,6 +523,9 @@
   // ---------- GAME screen ----------
   function startGame() {
     state.eliminated = new Set();
+    // Note: state.oppEliminated is reset in beginSelectScreen (which always
+    // runs first) — not here, so an opponent 'board' message that lands just
+    // before this runs isn't wiped.
     const myChar = CHARACTERS.find((c) => c.id === state.myCharacterId);
 
     const badge = $('#you-are-badge');
@@ -514,8 +560,16 @@
         card.classList.toggle('eliminated');
         if (card.classList.contains('eliminated')) state.eliminated.add(char.id);
         else state.eliminated.delete(char.id);
+        sendBoardState();
       },
     });
+
+    // The live shared board only makes sense against a real opponent.
+    $('#opp-board').classList.toggle('hidden', state.practiceMode);
+    $('#opp-board').open = true;
+    $('#opp-grid').innerHTML = '';
+    renderOppBoard();
+    sendBoardState();
 
     showScreen('game');
   }
@@ -619,10 +673,32 @@
       text = `Your opponent guessed ${char.name}, but your character is ${myChar.name}. They'll be told it's wrong.`;
       ackLabel = "Let them know they're wrong";
     }
+    // Show the art: the character they guessed, plus (when they're wrong)
+    // your real character alongside it for contrast.
+    const portraits = $('#incoming-guess-portraits');
+    portraits.innerHTML = '';
+    portraits.appendChild(
+      guessPortrait(char, correct ? 'Their guess — correct' : 'Their guess', correct ? 'is-right' : 'is-wrong')
+    );
+    if (!correct) {
+      portraits.appendChild(guessPortrait(myChar, 'Your character', 'is-right'));
+    }
+
     $('#incoming-guess-title').textContent = title;
     $('#incoming-guess-text').textContent = text;
     $('#btn-incoming-ack').textContent = ackLabel;
     $('#modal-incoming-guess').classList.remove('hidden');
+  }
+
+  function guessPortrait(char, label, mod) {
+    const wrap = document.createElement('div');
+    wrap.className = `guess-portrait ${mod}`;
+    wrap.appendChild(portraitEl(char, { framed: true }));
+    const l = document.createElement('div');
+    l.className = 'guess-portrait-label';
+    l.textContent = `${label}: ${char.name}`;
+    wrap.appendChild(l);
+    return wrap;
   }
 
   $('#btn-incoming-ack').addEventListener('click', () => {

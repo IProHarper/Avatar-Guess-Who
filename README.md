@@ -10,7 +10,7 @@ Networking uses [PeerJS](https://peerjs.com/) for a direct WebRTC connection bet
 2. They send that code to the other player (text, Discord, whatever).
 3. The other player clicks **Join Game**, enters the code, and connects.
 4. Both players secretly pick a character from the grid and hit **Confirm Selection**.
-5. Take turns asking yes/no questions out loud (or in the chat box) and flip down characters on your board as you rule them out. Tap the 🔍 on any card for a full-size look at the artwork, or click your own character chip (top-left) to enlarge it.
+5. Take turns asking yes/no questions out loud (or in the chat box) and flip down characters on your board as you rule them out. The **Opponent's board** panel below mirrors what they've crossed out, live. Tap the 🔍 on any card for a full-size look at the artwork, or click your own character chip (top-left) to enlarge it. The **🏠 Menu** button (top-right) leaves the game at any time.
 6. When you think you know their character, hit **Make Final Guess**, pick a character, and lock it in. Their browser checks it against their real character and reports back automatically.
 7. If your guess is wrong, play continues. If it's right, the opponent gets **one final "equalizer" guess** to try to tie it up: guess their character correctly too and the round is a **draw**; guess wrong (or skip) and you win.
 8. Hit **Play Again** for a rematch without leaving the room.

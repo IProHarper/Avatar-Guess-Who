@@ -23,6 +23,7 @@
     // final guess to try to tie it up. A correct equalizer makes it a draw.
     equalizerActive: false, // this player is picking their equalizer guess
     incomingIsEqualizer: false, // the incoming-guess modal is showing an equalizer guess
+    _incomingGuessCorrect: false, // auto-computed: does the opponent's guess match my character?
   };
 
   // ---------- DOM helpers ----------
@@ -322,10 +323,7 @@
       case 'guess': {
         const char = CHARACTERS.find((c) => c.id === msg.characterId);
         state.incomingIsEqualizer = false;
-        $('#modal-incoming-guess').querySelector('h2').textContent = "Opponent's Guess";
-        $('#incoming-guess-text').textContent = `Your opponent thinks your character is ${char.name}. Are they right?`;
-        $('#modal-incoming-guess').classList.remove('hidden');
-        state._incomingGuessId = msg.characterId;
+        showIncomingGuess(char, { equalizer: false });
         break;
       }
       case 'guessResult': {
@@ -358,12 +356,8 @@
           break;
         }
         const char = CHARACTERS.find((c) => c.id === msg.characterId);
-        state._incomingGuessId = msg.characterId;
         state.incomingIsEqualizer = true;
-        $('#modal-incoming-guess').querySelector('h2').textContent = "Opponent's Equalizer Guess";
-        $('#incoming-guess-text').textContent =
-          `Final equalizer guess: your opponent thinks your character is ${char.name}. Are they right?`;
-        $('#modal-incoming-guess').classList.remove('hidden');
+        showIncomingGuess(char, { equalizer: true });
         break;
       }
       case 'equalizerResult': {
@@ -565,31 +559,63 @@
   });
 
   // ---------- guessing (incoming) ----------
-  $('#btn-incoming-yes').addEventListener('click', () => {
-    $('#modal-incoming-guess').classList.add('hidden');
-    if (state.incomingIsEqualizer) {
-      // The opponent's final equalizer guess was correct → draw.
-      state.incomingIsEqualizer = false;
-      sendMessage({ type: 'equalizerResult', correct: true });
-      endGame({ outcome: 'draw', myChar: state.myCharacterId, guessedChar: state.opponentCharacterId });
-      return;
-    }
-    // The opponent guessed our character. We still get one equalizer guess.
-    sendMessage({ type: 'guessResult', correct: true });
-    openEqualizerPicker();
-  });
+  // The outcome of a final guess isn't a judgement call — this client holds
+  // the real secret character, so we compare it ourselves and just show the
+  // result. There's deliberately no "no, that's wrong" button: a correct
+  // guess can't be denied.
+  function showIncomingGuess(char, { equalizer }) {
+    const myChar = CHARACTERS.find((c) => c.id === state.myCharacterId);
+    const correct = char.id === state.myCharacterId;
+    state._incomingGuessCorrect = correct;
 
-  $('#btn-incoming-no').addEventListener('click', () => {
+    let title;
+    let text;
+    let ackLabel;
+    if (equalizer && correct) {
+      title = 'They equalized! 🤝';
+      text = `Your opponent's final guess was ${char.name} — your character. That ties the round.`;
+      ackLabel = 'See the draw';
+    } else if (equalizer) {
+      title = 'Their equalizer missed';
+      text = `Your opponent guessed ${char.name}, but your character is ${myChar.name}. You take the round.`;
+      ackLabel = 'Continue';
+    } else if (correct) {
+      title = 'They guessed it! 🎯';
+      text = `Your opponent guessed ${char.name} — that's your character. You still get one final guess to try to equalize.`;
+      ackLabel = 'Take my equalizer guess';
+    } else {
+      title = "Opponent's Guess";
+      text = `Your opponent guessed ${char.name}, but your character is ${myChar.name}. They'll be told it's wrong.`;
+      ackLabel = "Let them know they're wrong";
+    }
+    $('#incoming-guess-title').textContent = title;
+    $('#incoming-guess-text').textContent = text;
+    $('#btn-incoming-ack').textContent = ackLabel;
+    $('#modal-incoming-guess').classList.remove('hidden');
+  }
+
+  $('#btn-incoming-ack').addEventListener('click', () => {
     $('#modal-incoming-guess').classList.add('hidden');
+    const correct = state._incomingGuessCorrect;
+
     if (state.incomingIsEqualizer) {
-      // The opponent's final equalizer guess was wrong → we win.
       state.incomingIsEqualizer = false;
-      sendMessage({ type: 'equalizerResult', correct: false });
-      endGame({ outcome: 'win', myChar: state.myCharacterId, guessedChar: state.opponentCharacterId });
+      sendMessage({ type: 'equalizerResult', correct });
+      endGame({
+        outcome: correct ? 'draw' : 'win',
+        myChar: state.myCharacterId,
+        guessedChar: state.opponentCharacterId,
+      });
       return;
     }
-    sendMessage({ type: 'guessResult', correct: false });
-    addChatMsg('Opponent guessed wrong about your character. Game continues.', 'system');
+
+    sendMessage({ type: 'guessResult', correct });
+    if (correct) {
+      // Opponent guessed our character. We still get one equalizer guess.
+      openEqualizerPicker();
+    } else {
+      addChatMsg('Opponent guessed wrong about your character. Game continues.', 'system');
+    }
   });
 
   // ---------- end screen ----------

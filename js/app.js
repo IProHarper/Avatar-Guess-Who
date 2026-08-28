@@ -163,6 +163,9 @@
   // each game (see beginSelectScreen) so the layout changes every round.
   let SHUFFLED_CHARACTERS = shuffle(CHARACTERS);
 
+  // setInterval id for the game-screen board re-sync (see startGame).
+  let boardHeartbeat = null;
+
   function shuffle(list) {
     const arr = list.slice();
     for (let i = arr.length - 1; i > 0; i--) {
@@ -191,15 +194,33 @@
 
   function renderOppBoard() {
     const grid = $('#opp-grid');
-    if (grid.childElementCount === 0) {
+    const firstBuild = grid.childElementCount === 0;
+    if (firstBuild) {
       SHUFFLED_CHARACTERS.forEach((char) => grid.appendChild(buildCharCard(char)));
     }
     grid.querySelectorAll('.char-card').forEach((card) => {
-      card.classList.toggle('eliminated', state.oppEliminated.has(card.dataset.id));
+      const nowElim = state.oppEliminated.has(card.dataset.id);
+      const wasElim = card.classList.contains('eliminated');
+      card.classList.toggle('eliminated', nowElim);
+      // Pulse a card the moment the opponent flips it — makes the live sync
+      // visible rather than something you have to notice on your own.
+      if (!firstBuild && nowElim !== wasElim) {
+        card.classList.remove('opp-changed');
+        void card.offsetWidth;
+        card.classList.add('opp-changed');
+        setTimeout(() => card.classList.remove('opp-changed'), 900);
+      }
     });
     const n = state.oppEliminated.size;
-    $('#opp-ruled-count').textContent =
-      n === 0 ? 'nothing ruled out yet' : `${n} of ${CHARACTERS.length} ruled out`;
+    const countEl = $('#opp-ruled-count');
+    const next = n === 0 ? 'nothing ruled out yet' : `${n} of ${CHARACTERS.length} ruled out`;
+    if (!firstBuild && next !== countEl.textContent) {
+      countEl.classList.remove('bump');
+      void countEl.offsetWidth;
+      countEl.classList.add('bump');
+      setTimeout(() => countEl.classList.remove('bump'), 600);
+    }
+    countEl.textContent = next;
   }
 
   // ---------- chat ----------
@@ -359,6 +380,7 @@
 
   net.on('disconnected', () => {
     setConnStatus(false);
+    clearInterval(boardHeartbeat);
     addChatMsg('Your opponent disconnected.', 'system');
   });
 
@@ -473,11 +495,8 @@
     $('#btn-confirm-select').disabled = true;
     renderGrid($('#select-grid'), {
       onClick: (char, card) => {
-        if (state.iAmReady) return; // locked in — but the zoom button still works
-        document.querySelectorAll('#select-grid .char-card.selected').forEach((c) => c.classList.remove('selected'));
-        card.classList.add('selected');
-        state.myCharacterId = char.id;
-        $('#btn-confirm-select').disabled = false;
+        if (state.iAmReady || rouletteRunning) return; // locked in / mid-roll — zoom button still works
+        selectCharCard(char, card);
       },
     });
     showScreen('select');
@@ -490,10 +509,72 @@
     updateSelectStatus();
   }
 
+  function selectCharCard(cardOrChar, maybeCard) {
+    // Accepts (char, card) from the grid handler, or just a card element.
+    const card = maybeCard || cardOrChar;
+    const id = card.dataset.id;
+    document.querySelectorAll('#select-grid .char-card.selected').forEach((c) => c.classList.remove('selected'));
+    card.classList.add('selected');
+    state.myCharacterId = id;
+    $('#btn-confirm-select').disabled = false;
+  }
+
+  // Slot-machine style random pick: a highlight bounces across the grid,
+  // fast at first and easing to a stop on the chosen character.
+  let rouletteRunning = false;
   $('#btn-random-select').addEventListener('click', () => {
-    const choice = SHUFFLED_CHARACTERS[Math.floor(Math.random() * SHUFFLED_CHARACTERS.length)];
-    const card = document.querySelector(`#select-grid .char-card[data-id="${choice.id}"]`);
-    if (card) card.click();
+    if (rouletteRunning || state.iAmReady) return;
+
+    const cards = [...document.querySelectorAll('#select-grid .char-card')];
+    if (!cards.length) return;
+    const finalIdx = Math.floor(Math.random() * cards.length);
+
+    // Instant pick for anyone who'd rather not watch it spin.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      selectCharCard(cards[finalIdx]);
+      return;
+    }
+
+    rouletteRunning = true;
+    $('#btn-random-select').disabled = true;
+    $('#btn-confirm-select').disabled = true;
+    state.myCharacterId = null;
+    cards.forEach((c) => c.classList.remove('selected'));
+
+    const totalHops = 20 + Math.floor(Math.random() * 6); // ~20–25 hops (~2.6s total)
+    let hop = 0;
+    let prev = -1;
+
+    const tick = () => {
+      if (prev >= 0) cards[prev].classList.remove('rolling');
+      const last = hop === totalHops;
+      let idx;
+      if (last) {
+        idx = finalIdx;
+      } else {
+        do { idx = Math.floor(Math.random() * cards.length); } while (idx === prev && cards.length > 1);
+      }
+      cards[idx].classList.add('rolling');
+      prev = idx;
+
+      if (last) {
+        setTimeout(() => {
+          cards[finalIdx].classList.remove('rolling');
+          cards[finalIdx].classList.add('just-picked');
+          setTimeout(() => cards[finalIdx].classList.remove('just-picked'), 450);
+          selectCharCard(cards[finalIdx]);
+          cards[finalIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          rouletteRunning = false;
+          $('#btn-random-select').disabled = false;
+        }, 420);
+        return;
+      }
+
+      hop += 1;
+      const t = hop / totalHops; // ease-out: ~40ms early, ~300ms near the end
+      setTimeout(tick, 40 + Math.pow(t, 2.3) * 260);
+    };
+    tick();
   });
 
   function updateSelectStatus() {
@@ -569,7 +650,16 @@
     $('#opp-board').open = true;
     $('#opp-grid').innerHTML = '';
     renderOppBoard();
-    sendBoardState();
+
+    // Push our board now, again shortly after (in case the opponent's screen
+    // wasn't ready yet), then on a slow heartbeat so a dropped update can't
+    // leave the two boards permanently out of sync.
+    clearInterval(boardHeartbeat);
+    if (!state.practiceMode) {
+      sendBoardState();
+      setTimeout(sendBoardState, 1200);
+      boardHeartbeat = setInterval(sendBoardState, 5000);
+    }
 
     showScreen('game');
   }
@@ -729,6 +819,7 @@
   // outcome is 'win' | 'lose' | 'draw'.
   function endGame({ outcome, myChar, guessedChar }) {
     clearTimeout(toastTimer);
+    clearInterval(boardHeartbeat);
     $('#toast').classList.remove('show');
     state.endInfo = { outcome, myChar, guessedChar };
     const titles = {

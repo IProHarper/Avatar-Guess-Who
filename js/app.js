@@ -176,6 +176,35 @@
     log.scrollTop = log.scrollHeight;
   }
 
+  // ---------- transient toast ----------
+  let toastTimer = null;
+  function showToast(text, kind = 'wrong', ms = 3000) {
+    const el = $('#toast');
+    el.textContent = text;
+    el.className = `toast toast-${kind}`;
+    // force reflow so the show transition replays even on back-to-back toasts
+    void el.offsetWidth;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+  }
+
+  // Guesser-side feedback for a wrong final guess: shake + flash the card on
+  // the opponent's board and flip it down (it's definitely not them now).
+  function flashWrongGuess(char) {
+    showToast(`❌ Not ${char.name} — keep narrowing it down.`, 'wrong');
+    const card = document.querySelector(`#game-grid .char-card[data-id="${char.id}"]`);
+    if (!card) return;
+    card.classList.remove('guess-wrong');
+    void card.offsetWidth;
+    card.classList.add('guess-wrong');
+    setTimeout(() => card.classList.remove('guess-wrong'), 700);
+    if (!card.classList.contains('eliminated')) {
+      card.classList.add('eliminated');
+      state.eliminated.add(char.id);
+    }
+  }
+
   // On mobile the chat panel is a collapsible drawer; tapping its header
   // or the toggle arrow expands/collapses it (no-op on desktop, where the
   // ".expanded" class is ignored by CSS).
@@ -337,12 +366,14 @@
           // Don't end yet: the opponent gets one final guess to equalize.
           $('#btn-make-guess').disabled = true;
           $('#btn-make-guess').textContent = 'Opponent is taking their equalizer guess…';
+          showToast(`🎯 Correct! ${char.name} is their character.`, 'good');
           addChatMsg(
             `Your guess "${char.name}" was correct! Your opponent gets one final guess to try to tie it up…`,
             'system'
           );
         } else {
           addChatMsg(`Guess "${char.name}" was wrong. Keep going!`, 'system');
+          flashWrongGuess(char);
         }
         state.pendingGuessId = null;
         break;
@@ -621,6 +652,8 @@
   // ---------- end screen ----------
   // outcome is 'win' | 'lose' | 'draw'.
   function endGame({ outcome, myChar, guessedChar }) {
+    clearTimeout(toastTimer);
+    $('#toast').classList.remove('show');
     state.endInfo = { outcome, myChar, guessedChar };
     const titles = {
       win: 'You win! 🎉',

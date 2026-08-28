@@ -96,15 +96,6 @@
       <div id="game-grid" class="char-grid"></div>
       <button id="btn-make-guess" class="btn btn-primary btn-guess">Make Final Guess</button>
     </div>
-
-    <details id="opp-board" class="board-panel opp-board" open>
-      <summary class="opp-board-summary">
-        <span class="opp-board-title">Opponent's board</span>
-        <span id="opp-ruled-count" class="opp-count">nothing ruled out yet</span>
-      </summary>
-      <p class="sub">Characters your opponent has flipped down while narrowing in on <em>your</em> character. Updates live &mdash; you can't change it.</p>
-      <div id="opp-grid" class="char-grid opp-grid"></div>
-    </details>
   </section>
 
   <!-- END -->
@@ -119,18 +110,31 @@
 
 </main>
 
-<!-- PERSISTENT CHAT (visible during game + end screens, stays open to banter after the match) -->
-<aside id="chat-panel" class="chat-panel hidden">
-  <div class="chat-panel-header" id="chat-panel-toggle">
-    <h2>Ask Questions</h2>
-    <button type="button" id="btn-chat-toggle" class="chat-toggle-btn" aria-label="Toggle chat">▲</button>
-  </div>
-  <div id="chat-log" class="chat-log"></div>
-  <form id="chat-form" class="chat-form">
-    <input id="chat-input" class="text-input" type="text" placeholder="Does your character bend fire?" autocomplete="off" />
-    <button type="submit" class="btn btn-secondary">Send</button>
-  </form>
-</aside>
+<!-- SIDE COLUMN — chat plus the small live mirror of the opponent's board.
+     Visible on the game + end screens; stays mounted so chat banter survives
+     the game -> end transition. -->
+<div id="side-column" class="side-column hidden">
+  <aside id="chat-panel" class="chat-panel">
+    <div class="chat-panel-header" id="chat-panel-toggle">
+      <h2>Ask Questions</h2>
+      <button type="button" id="btn-chat-toggle" class="chat-toggle-btn" aria-label="Toggle chat">▲</button>
+    </div>
+    <div id="chat-log" class="chat-log"></div>
+    <form id="chat-form" class="chat-form">
+      <input id="chat-input" class="text-input" type="text" placeholder="Does your character bend fire?" autocomplete="off" />
+      <button type="submit" class="btn btn-secondary">Send</button>
+    </form>
+  </aside>
+
+  <details id="opp-board" class="opp-board hidden" open>
+    <summary class="opp-board-summary">
+      <span class="opp-board-title">Opponent's board</span>
+      <span id="opp-ruled-count" class="opp-count">none yet</span>
+    </summary>
+    <p class="opp-board-note">Live mirror of what they've crossed out.</p>
+    <div id="opp-grid" class="opp-grid"></div>
+  </details>
+</div>
 </div>
 
 <!-- transient feedback (wrong / right guess) -->

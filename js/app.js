@@ -40,9 +40,13 @@
   function showScreen(name) {
     Object.values(screens).forEach((s) => s.classList.remove('active'));
     screens[name].classList.add('active');
-    // Chat is a persistent panel (outside the screens) so it can stay open
-    // across the game -> end transition and keep banter going.
-    $('#chat-panel').classList.toggle('hidden', name !== 'game' && name !== 'end');
+    // The side column (chat + opponent board) lives outside the screens so
+    // chat banter survives the game -> end transition. It shows on both;
+    // the opponent-board mirror only makes sense during the game itself.
+    const sideVisible = name === 'game' || name === 'end';
+    $('#side-column').classList.toggle('hidden', !sideVisible);
+    $('#chat-panel').classList.toggle('hidden', !sideVisible);
+    $('#opp-board').classList.toggle('hidden', !(name === 'game' && !state.practiceMode));
     // Home button on every screen but the menu (you're already home there).
     $('#btn-home').classList.toggle('hidden', name === 'menu');
   }
@@ -213,7 +217,7 @@
     });
     const n = state.oppEliminated.size;
     const countEl = $('#opp-ruled-count');
-    const next = n === 0 ? 'nothing ruled out yet' : `${n} of ${CHARACTERS.length} ruled out`;
+    const next = n === 0 ? 'none yet' : `${n}/${CHARACTERS.length} out`;
     if (!firstBuild && next !== countEl.textContent) {
       countEl.classList.remove('bump');
       void countEl.offsetWidth;
@@ -645,8 +649,8 @@
       },
     });
 
-    // The live shared board only makes sense against a real opponent.
-    $('#opp-board').classList.toggle('hidden', state.practiceMode);
+    // Rebuild the (small, off-to-the-side) opponent-board mirror. showScreen
+    // handles whether it's actually shown.
     $('#opp-board').open = true;
     $('#opp-grid').innerHTML = '';
     renderOppBoard();

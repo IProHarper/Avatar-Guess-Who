@@ -179,9 +179,10 @@
     return arr;
   }
 
-  function renderGrid(container, { onClick } = {}) {
+  function renderGrid(container, { onClick, filter } = {}) {
     container.innerHTML = '';
     SHUFFLED_CHARACTERS.forEach((char) => {
+      if (filter && !filter(char)) return;
       const card = buildCharCard(char, { onClick });
       container.appendChild(card);
     });
@@ -682,7 +683,16 @@
   function openGuessPicker() {
     state._modalGuessId = null;
     $('#btn-guess-submit').disabled = true;
+
+    // Only offer the characters this player hasn't already ruled out — the
+    // final guess is always one of those. If every character somehow got
+    // crossed out, fall back to showing the full roster.
+    const remaining = CHARACTERS.filter((c) => !state.eliminated.has(c.id));
+    const hidden = CHARACTERS.length - remaining.length;
+    const showAll = remaining.length === 0;
+
     renderGrid($('#guess-grid'), {
+      filter: showAll ? null : (char) => !state.eliminated.has(char.id),
       onClick: (char, card) => {
         document.querySelectorAll('#guess-grid .char-card.selected').forEach((c) => c.classList.remove('selected'));
         card.classList.add('selected');
@@ -690,6 +700,16 @@
         $('#btn-guess-submit').disabled = false;
       },
     });
+
+    const note = $('#guess-filter-note');
+    if (hidden > 0 && !showAll) {
+      note.textContent = `Hiding ${hidden} character${hidden === 1 ? '' : 's'} you've already ruled out.`;
+      note.classList.remove('hidden');
+    } else {
+      note.textContent = '';
+      note.classList.add('hidden');
+    }
+
     $('#modal-guess').classList.remove('hidden');
   }
 
